@@ -4,7 +4,7 @@ from math import exp, sqrt
 from binascii import crc32
 from enum import IntEnum
 from io import BytesIO
-from ctypes import *
+from ctypes import LittleEndianStructure, c_uint32
 
 DATA_URI_PREFIX = 'data:audio/vnd.shazam.sig;base64,'
 

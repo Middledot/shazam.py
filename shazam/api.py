@@ -15,8 +15,6 @@ from .signature_format import DecodedMessage
 LANG = 'us'
 TIME_ZONE = 'EST'
 
-# TODO: re-implement for async
-
 class Endpoint:
     SCHEME = 'https'
     HOSTNAME = 'amp.shazam.com'

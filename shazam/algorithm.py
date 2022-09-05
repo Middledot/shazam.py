@@ -6,10 +6,22 @@ HANNING_MATRIX = hanning(2050)[1:-1]  # Wipe trailing and leading zeroes
 
 from .signature_format import DecodedMessage, FrequencyPeak, FrequencyBand
 
+# Before you ask, I have legit no idea what this code does exactly because
+# the original project had zero documentation and the only other shazam wrapper
+# was also based on that one and also had the same code and also had no docs
+
+# If you're wondering why this is slow, it's because there is a lot of
+# stuff moving around at SignatureGenerator.do_peak_spreading()
+
+# If you think you have an idea what this does or how it works or why this
+# is here or how to make it faster (somehow) then feel free to make an issue
+# or pr or smth or wait until I find out.
+
+
 class RingBuffer(list):
-    def __init__(self, buffer_size : int, default_value : Any = None):
+    def __init__(self, buffer_size: int, default_value: Any = None):
         if default_value is not None:
-            list.__init__(self, [copy(default_value) for position in range(buffer_size)])
+            list.__init__(self, [copy(default_value) for _ in range(buffer_size)])
         else:
             list.__init__(self, [None] * buffer_size)
 
@@ -24,6 +36,7 @@ class RingBuffer(list):
         self.position %= self.buffer_size
         self.num_written += 1
 
+
 class SignatureGenerator:
     def __init__(self):
         # Used when storing input that will be processed when requiring to
@@ -34,11 +47,11 @@ class SignatureGenerator:
 
         # Used when processing input:
 
-        self.ring_buffer_of_samples : RingBuffer[int] = RingBuffer(buffer_size = 2048, default_value = 0)
+        self.ring_buffer_of_samples: RingBuffer[int] = RingBuffer(buffer_size = 2048, default_value = 0)
 
-        self.fft_outputs : RingBuffer[List[float]] = RingBuffer(buffer_size = 256, default_value = [0. * 1025]) # Lists of 1025 floats, premultiplied with a Hanning function before being passed through FFT, computed from the ring buffer every new 128 samples
+        self.fft_outputs: RingBuffer[List[float]] = RingBuffer(buffer_size = 256, default_value = [0. * 1025])  # Lists of 1025 floats, premultiplied with a Hanning function before being passed through FFT, computed from the ring buffer every new 128 samples
 
-        self.spread_ffts_output : RingBuffer[List[float]] = RingBuffer(buffer_size = 256, default_value = [0] * 1025)
+        self.spread_ffts_output: RingBuffer[List[float]] = RingBuffer(buffer_size = 256, default_value = [0] * 1025)
 
         # How much data to send to Shazam at once?
 
@@ -53,7 +66,7 @@ class SignatureGenerator:
         self.next_signature.number_samples = 0
         self.next_signature.frequency_band_to_sound_peaks = {}
     
-    def feed_input(self, s16le_mono_samples : List[int]):
+    def feed_input(self, s16le_mono_samples: List[int]):
         """Add data to be generated a signature for, which will be
         processed when self.get_next_signature() is called. This
         function expects signed 16-bit 16 KHz mono PCM samples.
@@ -88,9 +101,9 @@ class SignatureGenerator:
         self.next_signature.number_samples = 0
         self.next_signature.frequency_band_to_sound_peaks = {}
 
-        self.ring_buffer_of_samples : RingBuffer[int] = RingBuffer(buffer_size = 2048, default_value = 0)
-        self.fft_outputs : RingBuffer[List[float]] = RingBuffer(buffer_size = 256, default_value = [0. * 1025])
-        self.spread_ffts_output : RingBuffer[List[float]] = RingBuffer(buffer_size = 256, default_value = [0] * 1025)
+        self.ring_buffer_of_samples: RingBuffer[int] = RingBuffer(buffer_size = 2048, default_value = 0)
+        self.fft_outputs: RingBuffer[List[float]] = RingBuffer(buffer_size = 256, default_value = [0. * 1025])
+        self.spread_ffts_output: RingBuffer[List[float]] = RingBuffer(buffer_size = 256, default_value = [0] * 1025)
 
         return returned_signature
 
@@ -118,7 +131,7 @@ class SignatureGenerator:
 
         # The premultiplication of the array is for applying a windowing function before the DFT (slighty rounded Hanning without zeros at edges)
 
-        fft_results : nparray = fft.rfft(HANNING_MATRIX * excerpt_from_ring_buffer)
+        fft_results: nparray = fft.rfft(HANNING_MATRIX * excerpt_from_ring_buffer)
 
         assert len(fft_results) == 1025 and len(excerpt_from_ring_buffer) == 2048 == len(HANNING_MATRIX)
 
@@ -134,17 +147,18 @@ class SignatureGenerator:
             self.do_peak_recognition()
 
     def do_peak_spreading(self):
-        origin_last_fft : List[float] = self.fft_outputs[self.fft_outputs.position - 1]
-        spread_last_fft : List[float] = list(origin_last_fft)
-        
+        # TODO: optimizations?
+        origin_last_fft: List[float] = self.fft_outputs[self.fft_outputs.position - 1]
+        spread_last_fft: List[float] = list(origin_last_fft)
+
         for position in range(1025):
             # Perform frequency-domain spreading of peak values
             if position < 1023:
                 spread_last_fft[position] = max(spread_last_fft[position:position + 3])
-            
+
             # Perform time-domain spreading of peak values
             max_value = spread_last_fft[position]
-            
+
             for former_fft_num in [-1, -3, -6]:
                 former_fft_output = self.spread_ffts_output[(self.spread_ffts_output.position + former_fft_num) % self.spread_ffts_output.buffer_size]
                 former_fft_output[position] = max_value = max(former_fft_output[position], max_value)
@@ -153,10 +167,12 @@ class SignatureGenerator:
         self.spread_ffts_output.append(spread_last_fft)
 
     def do_peak_recognition(self):
+        # TODO: optimizations?
         fft_minus_46 = self.fft_outputs[(self.fft_outputs.position - 46) % self.fft_outputs.buffer_size]
         fft_minus_49 = self.spread_ffts_output[(self.spread_ffts_output.position - 49) % self.spread_ffts_output.buffer_size]
-        fft_minus_53 = self.spread_ffts_output[(self.spread_ffts_output.position - 53) % self.spread_ffts_output.buffer_size]
-        fft_minus_45 = self.spread_ffts_output[(self.spread_ffts_output.position - 45) % self.spread_ffts_output.buffer_size]
+        # unused vars
+        #fft_minus_53 = self.spread_ffts_output[(self.spread_ffts_output.position - 53) % self.spread_ffts_output.buffer_size]
+        #fft_minus_45 = self.spread_ffts_output[(self.spread_ffts_output.position - 45) % self.spread_ffts_output.buffer_size]
 
         for bin_position in range(10, 1015):
             # Ensure that the bin is large enough to be a peak

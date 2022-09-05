@@ -17,8 +17,8 @@ from shazam import Shazam
 
 mp3_file_content_to_recognize = open('a.mp3', 'rb').read()
 
-with Shazam(mp3_file_content_to_recognize) as shazam:
-    for res in shazam.results:
+with Shazam(mp3_file_content_to_recognize) as results:
+    for res in results:
         print(res)  # current offset & shazam response to recognize requests
 ```
 
@@ -29,8 +29,8 @@ from shazam import AsyncShazam
 
 mp3_file_content_to_recognize = open('a.mp3', 'rb').read()
 
-async with AsyncShazam(mp3_file_content_to_recognize) as shazam:
-    async for res in shazam.results:
+async with AsyncShazam(mp3_file_content_to_recognize) as results:
+    async for res in results:
         print(res)
 ```
 
