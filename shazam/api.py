@@ -1,15 +1,11 @@
-import asyncio
 import uuid
 import time
 import requests
 import aiohttp
-from pydub import AudioSegment
-from io import BytesIO
 
 from typing import Dict, Iterator, Tuple
 
-from .algorithm import SignatureGenerator
-from .signature_format import DecodedMessage
+from .shazam import make_signature_from_buffer, DecodedSignature
 
 # this is a country so uh yeah
 LANG = 'us'
@@ -69,31 +65,24 @@ class _BaseShazam:
         self,
         song_data: bytes,
         *,
-        execute: bool = True,
-        
         lang: str = LANG,
         timezone: str = TIME_ZONE,
     ):
         self.song_data = song_data
-        self._execute = execute
-        self.results = None
+        self.result = None
         self._endpoint = Endpoint(lang, timezone)
 
-    def normalize_audio_data(self, song_data: bytes) -> AudioSegment:
-        audio: AudioSegment = AudioSegment.from_file(BytesIO(song_data))  # TODO: remove typehint
-
-        audio = audio.set_sample_width(2)
-        audio = audio.set_frame_rate(16000)
-        audio = audio.set_channels(1)
-        return audio
-
-    def create_signature_generator(self, audio: AudioSegment) -> SignatureGenerator:
-        signature_generator = SignatureGenerator()
-        signature_generator.feed_input(audio.get_array_of_samples())
-        signature_generator.MAX_TIME_SECONDS = self.MAX_TIME_SECONDS
-        if audio.duration_seconds > 12 * 3:
-            signature_generator.samples_processed += 16000 * (int(audio.duration_seconds / 16) - 6)
-        return signature_generator
+    def get_payload(self, sig) -> dict:
+        return {
+            'timezone': self._endpoint.time_zone,
+            'signature': {
+                'uri': sig.encode_to_uri(),
+                'samplems': int(sig.number_samples / sig.sample_rate_hz * 1000)
+            },
+            'timestamp': int(time.time() * 1000),
+            'context': {},
+            'geolocation': {}
+        }
 
 
 class Shazam(_BaseShazam):
@@ -107,30 +96,14 @@ class Shazam(_BaseShazam):
             self._created = True
             self.session = requests.Session()
 
-    def execute(self) -> Iterator[Tuple[float, Dict]]:
-        self.audio = self.normalize_audio_data(self.song_data)
-        signatureGenerator = self.create_signature_generator(self.audio)
-        while True:
-            signature = signatureGenerator.get_next_signature()
-            if not signature:
-                break
+    def execute(self) -> dict:
+        sig = make_signature_from_buffer(self.song_data)
+        result = self.send_request(sig)
 
-            results = self.send_request(signature)
-            currentOffset = signatureGenerator.samples_processed / 16000
+        return result
 
-            yield currentOffset, results
-
-    def send_request(self, sig: DecodedMessage) -> dict:
-        data = {
-            'timezone': self._endpoint.time_zone,
-            'signature': {
-                'uri': sig.encode_to_uri(),
-                'samplems': int(sig.number_samples / sig.sample_rate_hz * 1000)
-            },
-            'timestamp': int(time.time() * 1000),
-            'context': {},
-            'geolocation': {}
-        }
+    def send_request(self, sig: DecodedSignature) -> dict:
+        data = self.get_payload(sig)
 
         r = self.session.post(
             self._endpoint.url.format(
@@ -144,12 +117,8 @@ class Shazam(_BaseShazam):
 
         return r.json()
 
-    def __iter__(self):
-        return self.results
-
     def __enter__(self):
-        if self._execute:
-            self.results = self.execute()
+        self.result = self.execute()
 
         return self
 
@@ -173,29 +142,13 @@ class AsyncShazam(_BaseShazam):
             self.session = aiohttp.ClientSession()
 
     async def execute(self) -> Iterator[Tuple[float, Dict]]:
-        self.audio = self.normalize_audio_data(self.song_data)
-        signatureGenerator = self.create_signature_generator(self.audio)
-        while True:
-            signature = signatureGenerator.get_next_signature()
-            if not signature:
-                break
+        sig = make_signature_from_buffer(self.song_data)
+        result = await self.send_request(sig)
 
-            results = await self.send_request(signature)
-            currentOffset = signatureGenerator.samples_processed / 16000
+        return result
 
-            yield currentOffset, results
-
-    async def send_request(self, sig: DecodedMessage) -> dict:
-        data = {
-            'timezone': self._endpoint.time_zone,
-            'signature': {
-                'uri': sig.encode_to_uri(),
-                'samplems': int(sig.number_samples / sig.sample_rate_hz * 1000)
-            },
-            'timestamp': int(time.time() * 1000),
-            'context': {},
-            'geolocation': {}
-        }
+    async def send_request(self, sig: DecodedSignature) -> dict:
+        data = self.get_payload(sig)
 
         r = await self.session.post(
             self._endpoint.url.format(
@@ -209,12 +162,8 @@ class AsyncShazam(_BaseShazam):
 
         return await r.json()
 
-    def __aiter__(self):
-        return self.results
-
     async def __aenter__(self):
-        if self._execute:
-            self.results = self.execute()
+        self.result = await self.execute()
 
         return self
 
