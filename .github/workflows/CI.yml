@@ -12,13 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: test
+      run: cargo package --list
     - uses: messense/maturin-action@v1
       with:
         manylinux: auto
         command: build
         args: --release --sdist -o dist --find-interpreter
-    - name: test
-      run: cargo package --list
     - name: Upload wheels
       uses: actions/upload-artifact@v2
       with:
