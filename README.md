@@ -10,6 +10,9 @@ NOTE: that this is still in its design and development phase. It works and \*cou
 pip3 install shazam.py
 ```
 
+If you're on linux, you'll also have to install `pkg-config` and `libasound2-dev` with your preferred package manager.
+
+
 ### Usage
 
 Synchronous Shazam:
