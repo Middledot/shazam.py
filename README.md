@@ -2,6 +2,8 @@
 
 Python library for the [Shazam](https://shazam.com) API. This library is based off of [ShazamAPI](https://github.com/Numenorean/ShazamAPI) and [SongRec](https://github.com/marin-m/SongRec) but some added features.
 
+NOTE: that this is still in its design and development phase. It works and \*could\* be used in production but beware of possible breaking changes.
+
 
 ### Install
 ```
