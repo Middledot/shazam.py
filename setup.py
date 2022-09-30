@@ -13,13 +13,13 @@ setuptools.setup(
     license="MIT",
     author="Middledot",
     author_email="middledot.productions@gmail.com",
-    description="Fully reverse engeenired shazam api",
+    description="Shazam API wrapper",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/Numenorean/ShazamAPI",
+    url="https://github.com/Middledot/shazam.py",
     install_requires=requirements,
     packages=["shazam"],
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     project_urls={
         #"Documentation": "https://shazampy.readthedocs.io/en/latest/",  # TODO:
         "Issue Tracker": "https://github.com/Middledot/shazam.py/issues",
