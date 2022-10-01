@@ -5,9 +5,9 @@ build-backend = "maturin"
 [project]
 name = "shazam.py"
 description = "Shazam API wrapper"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
-    "Middledot <middledot.productions@gmail.com>",
+    {name = "Middledot", email = "middledot.productions@gmail.com"}
 ]
 readme = "README.md"
 repository = "https://github.com/Middledot/shazam.py"
@@ -33,4 +33,4 @@ classifiers = [
 dependencies = ["maturin==0.13.5", "aiohttp==3.8.1", "requests==2.28.1"]
 
 [urls]
-"Issue Tracker" = https://github.com/Middledot/shazam.py/issues
+"Issue Tracker" = "https://github.com/Middledot/shazam.py/issues"
