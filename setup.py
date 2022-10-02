@@ -9,7 +9,7 @@ with open('requirements.txt') as f:
 
 setuptools.setup(
     name="shazam.py",
-    version="1.0.0a",
+    version="1.0.0",
     license="MIT",
     author="Middledot",
     author_email="middledot.productions@gmail.com",

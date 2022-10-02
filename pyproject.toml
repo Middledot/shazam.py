@@ -6,6 +6,7 @@ build-backend = "maturin"
 name = "shazam.py"
 description = "Shazam API wrapper"
 license = {text = "MIT"}
+version = "1.0.0"
 authors = [
     {name = "Middledot", email = "middledot.productions@gmail.com"}
 ]
