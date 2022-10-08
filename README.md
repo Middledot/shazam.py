@@ -52,10 +52,6 @@ The implementation of the algorithm was written by @marin-m in [their project](h
 It was adapted to work with python through pyo3 here.
 
 
-### Why is this better than all other libraries ever?
-Because rust
-
-
 ### Credits to:
 
 https://github.com/marin-m/SongRec
