@@ -33,5 +33,6 @@ classifiers = [
 ]
 dependencies = ["maturin==0.13.5", "aiohttp==3.8.1", "requests==2.28.1"]
 
-[urls]
-"Issue Tracker" = "https://github.com/Middledot/shazam.py/issues"
+[project.urls]
+Homepage = "https://github.com/Middledot/shazam.py"
+Tracker = "https://github.com/Middledot/shazam.py/issues"
