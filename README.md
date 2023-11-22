@@ -24,6 +24,7 @@ mp3_file = open('a.mp3', 'rb').read()
 
 with Shazam(mp3_file) as shazam:
     print(shazam.result)  # data received from the shazam api
+    print(shazam.response.name)  # structured data
 ```
 
 A partially-asynchronous method is also provided:
@@ -36,6 +37,7 @@ mp3_file = open('a.mp3', 'rb').read()
 
 async with AsyncShazam(mp3_file) as shazam:
     print(shazam.result)
+    print(shazam.response.name)
 ```
 
 There is also support for using your own session objects and using `Shazam` and `AsyncShazam` outside of
@@ -55,4 +57,3 @@ It was adapted to work with python through pyo3 here.
 ### Credits to:
 
 https://github.com/marin-m/SongRec
-https://github.com/Numenorean/ShazamAPI

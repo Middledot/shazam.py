@@ -1,8 +1,6 @@
 # encapsulates __pycache__ files:
 *.py[cd]
 
-# rust compilation
 target/
-
-# :mmyes:
 .env
+.DS_Store

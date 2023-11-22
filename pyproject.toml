@@ -31,7 +31,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-dependencies = ["maturin==0.13.5", "aiohttp==3.8.1", "requests==2.28.1"]
+dependencies = ["maturin==0.13.5", "aiohttp==3.9.0", "requests==2.28.1"]
 
 [project.urls]
 Homepage = "https://github.com/Middledot/shazam.py"

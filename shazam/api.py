@@ -6,10 +6,7 @@ import aiohttp
 from typing import Dict, Iterator, Tuple
 
 from .shazam import make_signature_from_buffer, DecodedSignature
-
-# this is a country so uh yeah
-LANG = 'us'
-TIME_ZONE = 'EST'
+from .obj import Response
 
 class Endpoint:
     SCHEME = 'https'
@@ -58,21 +55,22 @@ class Endpoint:
         }
 
 
-class _BaseShazam:
+class ShazamCore:
     MAX_TIME_SECONDS = 8
 
     def __init__(
         self,
         song_data: bytes,
         *,
-        lang: str = LANG,
-        timezone: str = TIME_ZONE,
+        lang: str = "us",
+        timezone: str = "EST",
     ):
         self.song_data = song_data
         self.result = None
+        self._response = None
         self._endpoint = Endpoint(lang, timezone)
 
-    def get_payload(self, sig) -> dict:
+    def get_payload(self, sig: DecodedSignature) -> dict:
         return {
             'timezone': self._endpoint.time_zone,
             'signature': {
@@ -83,9 +81,16 @@ class _BaseShazam:
             'context': {},
             'geolocation': {}
         }
+    
+    @property
+    def response(self):
+        if self._response is None:
+            self._response = Response(self.result)
+
+        return self._response
 
 
-class Shazam(_BaseShazam):
+class Shazam(ShazamCore):
     def __init__(self, *args, **kwargs):
         session = kwargs.pop("session", None)
         super().__init__(*args, **kwargs)
@@ -130,7 +135,7 @@ class Shazam(_BaseShazam):
             self.session.close()
 
 
-class AsyncShazam(_BaseShazam):
+class AsyncShazam(ShazamCore):
     def __init__(self, *args, **kwargs):
         session = kwargs.pop("session", None)
         super().__init__(*args, **kwargs)

@@ -78,11 +78,8 @@ struct RawSignatureHeader {
     crc32: u32, // CRC-32 for all of the following (so excluding these first 8 bytes)
     size_minus_header: u32, // Total size of the message, minus the size of the current header (which is 48 bytes)
     magic2: u32, // Fixed 0x94119c00 - 00 9c 11 94
-    _void1: [u32; 3], // Void
     shifted_sample_rate_id: u32, // A member of SampleRate (usually 3 for 16000 Hz), left-shifted by 27 (usually giving 0x18000000 - 00 00 00 18)
-    _void2: [u32; 2], // Void, or maybe used only in "rolling window" mode?
     number_samples_plus_divided_sample_rate: u32, // int(number_of_samples + sample_rate * 0.24) - As the sample rate is known thanks to the field above, it can be inferred and substracted so that we obtain the number of samples, and from the number of samples and sample rate we can obtain the length of the recording
-    _fixed_value: u32 // Calculated as ((15 << 19) + 0x40000) - 0x7c0000 or 00 00 7c 00 - seems pretty constant, may be different in the "SigType.STREAMING" mode
 }
 
 
@@ -113,16 +110,26 @@ impl DecodedSignature {
 
         let mut cursor = Cursor::new(data);
 
+        let magic1 = cursor.read_u32::<LittleEndian>()?;
+        let crc32 = cursor.read_u32::<LittleEndian>()?;
+        let size_minus_header = cursor.read_u32::<LittleEndian>()?;
+        let magic2 = cursor.read_u32::<LittleEndian>()?;
+        // Void
+        let _void1 = [cursor.read_u32::<LittleEndian>()?, cursor.read_u32::<LittleEndian>()?, cursor.read_u32::<LittleEndian>()?];
+        let shifted_sample_rate_id = cursor.read_u32::<LittleEndian>()?;
+        // Void, or maybe used only in "rolling window" mode?
+        let _void2 = [cursor.read_u32::<LittleEndian>()?, cursor.read_u32::<LittleEndian>()?];
+        let number_samples_plus_divided_sample_rate =  cursor.read_u32::<LittleEndian>()?;
+        // Calculated as ((15 << 19) + 0x40000) - 0x7c0000 or 00 00 7c 00 - seems pretty constant, may be different in the "SigType.STREAMING" modes
+        let _fixed_value = cursor.read_u32::<LittleEndian>();
+
         let header = RawSignatureHeader {
-            magic1: cursor.read_u32::<LittleEndian>()?,
-            crc32: cursor.read_u32::<LittleEndian>()?,
-            size_minus_header: cursor.read_u32::<LittleEndian>()?,
-            magic2: cursor.read_u32::<LittleEndian>()?,
-            _void1: [cursor.read_u32::<LittleEndian>()?, cursor.read_u32::<LittleEndian>()?, cursor.read_u32::<LittleEndian>()?],
-            shifted_sample_rate_id: cursor.read_u32::<LittleEndian>()?,
-            _void2: [cursor.read_u32::<LittleEndian>()?, cursor.read_u32::<LittleEndian>()?],
-            number_samples_plus_divided_sample_rate: cursor.read_u32::<LittleEndian>()?,
-            _fixed_value: cursor.read_u32::<LittleEndian>()?
+            magic1,
+            crc32,
+            size_minus_header,
+            magic2,
+            shifted_sample_rate_id,
+            number_samples_plus_divided_sample_rate,
         };
 
         let mut hasher = Hasher::new();
@@ -139,7 +146,7 @@ impl DecodedSignature {
             4 => 32000,
             5 => 44100,
             6 => 48000,
-            _ => { panic!("Invalid sample rate in decoded Shazam packet"); }
+            _ => panic!("Invalid sample rate in decoded Shazam packet"),
         };
 
         let number_samples: u32 = header.number_samples_plus_divided_sample_rate - (sample_rate_hz as f32 * 0.24) as u32;
@@ -168,7 +175,7 @@ impl DecodedSignature {
                 1 => FrequencyBand::_520_1450,
                 2 => FrequencyBand::_1450_3500,
                 3 => FrequencyBand::_3500_5500,
-                _ => { panic!("Invalid frequency band in decoded Shazam packet"); }
+                _ => panic!("Invalid frequency band in decoded Shazam packet"),
             };
 
             let mut fft_pass_number: u32 = 0;
